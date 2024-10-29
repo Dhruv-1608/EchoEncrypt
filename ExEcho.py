@@ -17,20 +17,23 @@ def extract_message(audio_file):
         with wave.open(audio_file, mode='rb') as wave_audio:
             frame_bytes = bytearray(list(wave_audio.readframes(wave_audio.getnframes())))
             extracted_bits = [frame_bytes[i] & 1 for i in range(len(frame_bytes))]
-            
+
             chars = []
             for i in range(0, len(extracted_bits), 8):
                 byte = extracted_bits[i:i + 8]
                 byte_str = ''.join(str(bit) for bit in byte)
-                
-                if len(byte_str) == 8:  
-                    chars.append(chr(int(byte_str, 2)))
+
+                if len(byte_str) < 8:
+                    continue  # Skip incomplete bytes
+
+                if byte_str == '00000000':  # Stop decoding when end signal is found
+                    break
+
+                chars.append(chr(int(byte_str, 2)))
 
             decoded_message = ''.join(chars)
+            print(f"✅ Your Secret Message is: {decoded_message}")
 
-            secret_message = decoded_message.split('#')[0]
-            print(f"✅ Your Secret Message is: {secret_message}")
-            
     except Exception as e:
         print("❌ Something went wrong while extracting the message!")
         print(f"Error: {e}")

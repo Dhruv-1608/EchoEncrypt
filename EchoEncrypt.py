@@ -2,7 +2,6 @@ import os
 import wave
 import argparse
 
-
 parser = argparse.ArgumentParser(description="Hide a secret message in a WAV audio file.")
 parser.add_argument('-f', required=True, help='Select Audio File (in .wav format)', dest='audiofile')
 parser.add_argument('-m', required=True, help='Enter your Secret Message', dest='secretmsg')
@@ -21,21 +20,22 @@ def hide_message(audio_file, secret_msg, output_file):
         num_frames = wave_audio.getnframes()
         frame_bytes = bytearray(list(wave_audio.readframes(num_frames)))
 
-        available_bits = num_frames 
-
-        # Decode message into bits
+        # Prepare message with end signal (0b00000000)
         bits = [int(bit) for char in secret_msg for bit in format(ord(char), '08b')]
-        message_bits = len(bits)
+        end_signal = [0] * 8  # Signal end of message
+        bits += end_signal  # Append end signal
 
-        if message_bits > available_bits:
+        available_bits = num_frames
+
+        if len(bits) > available_bits:
             print("💡 The message is too large to fit in the audio file.")
             print(f"📏 Available capacity: {available_bits} bits")
-            print(f"📝 Your message size: {message_bits} bits")
-            print("Splitting message over multiple files or consider shortening your message.")
+            print(f"📝 Your message size: {len(bits)} bits including end signal")
             return
 
-        for i in range(message_bits):
-            frame_bytes[i] = (frame_bytes[i] & 254) | bits[i]
+        # Modify frame bytes with the message bits
+        for i in range(len(bits)):
+            frame_bytes[i] = (frame_bytes[i] & 254) | bits[i]  # Set LSB according to message bits
 
         with wave.open(output_file, 'wb') as out_audio:
             out_audio.setparams(wave_audio.getparams())
